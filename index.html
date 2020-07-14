@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" type="text/css" href="static/iview.css">
+    <script type="text/javascript" src="static/vue.js"></script>
+    <script type="text/javascript" src="static/iview.js"></script>
+
+</head>
+
+<body>
+    <div id="app">
+        <h1 class="title">let's play a game! <div>
+                <i-button @click="reload" size="small">reload</i-button>
+            </div>
+        </h1>
+
+        <div class="body">
+            <div class="comment">
+                <b>玩法 :</b>
+                <p>
+                     两个玩家，每人可以在一轮内，在任意行拿任意个球，但不能跨行,拿最后一个球的人即为输家
+                </p>
+                <br>
+                <b>
+                    简短的文字描述想法 : 
+                </b>
+                <p>
+                    1. 两个玩家可以通过在操作中的顺序确定是哪个玩家在操作,奇数为player1,偶数为play2.
+                </p>
+                <p>
+                    2. 任意行拿任意个球，但不能跨行, 是通过小球的hover事件高亮要移除的小球, 并在点击后disable高亮的小球,代表某一次玩家操作完成.
+                </p>
+                <p>
+                    3. 最后一个球的人即为输家, 是通过判断造成场人余球为0的那个操作的人即为输家.
+                </p>
+            </div>
+            <div class="box">
+                <div class="row" v-for="(idx1,ele1) in box">
+                    <div class="stick"></div>
+                    <i-button v-for="(idx2,ele2) in ele1" @click="remove(ele1,idx2,idx1)" :disabled="ele2.deleted"
+                        :class="{hover:ele2.hover}" :type="ele2.hover?'error':'primary'" shape="circle"
+                        @mouseover="mouseover(ele1,idx2)" @mouseout="mouseout(ele1,idx2)">{{idx2+1}}
+                    </i-button>
+                    <div class="stick"></div>
+                </div>
+            </div>
+            <div class="history">
+
+                <timeline pending>
+                    <timeline-item>
+                        <row>
+                            <i-col span="7">
+                                palyers
+                            </i-col>
+                            <i-col span="3" v-for="ele in [3,5,7]">
+                                <i-button type="primary" size="small">{{ele}}</i-button>
+                            </i-col>
+                        </row>
+                    </timeline-item>
+                    <timeline-item v-for="(idx,ele) in history">
+                        <row>
+                            <i-col span="7">
+                                <span>palyer{{idx%2?2:1}}</span>
+                                <span v-if="columns==0 && idx==history.length-1" class="lose">: lose</span>
+                            </i-col>
+                            <i-col span="3" v-for="order in [0,1,2]">
+                                <Badge :count="ele[3]" v-if="order==ele[0]">
+                                    <i-button :type="idx%2?'info':'success'" size="small">{{ele[1]}}
+                                    </i-button>
+                                </Badge>
+                                <span v-else class="line"></span>
+                            </i-col>
+                            <i-col span="8">
+                                {{ele[2]}}
+                            </i-col>
+                        </row>
+                    </timeline-item>
+                </timeline>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    const getBox = () => {
+        const numbers = [3, 5, 7]
+        return numbers.map(num => {
+            return new Array(num).fill(0).map(e => {
+                return { deleted: false, hover: false }
+            })
+        })
+    }
+    new Vue({
+        el: '#app',
+        data: {
+            msg: 'fuck',
+            box: getBox(),
+            history: [],
+            columns:3,
+        },
+        methods: {
+            reload() {
+                location.reload()
+            },
+            // remove balls in a column
+            remove(list, idx2, idx1) {
+                let num = 0
+                list.forEach((e, i) => {
+                    if (i <= idx2 && e.deleted==false) { e.deleted = true;num++ }
+                })
+                const count = this.count(list, idx2)
+                if(count==0) this.columns--
+                this.history.push([idx1, count, this.getDateStr(),num])
+            },
+            // format date
+            getDateStr() {
+                const date = new Date();
+                return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()} ${date.getMilliseconds()}`
+            },
+            mouseover(list, idx) {
+                list.forEach((e, i) => {
+                    if (i <= idx) e.hover = true
+                })
+            },
+            mouseout(list, idx) {
+                list.forEach((e, i) => {
+                    e.hover = false
+                })
+            },
+            // count the remaining balls
+            count(list, idx) {
+                const num = list.reduce((sum, ele) => {
+                    if (!ele.deleted) return sum + 1
+                    else return sum
+                }, 0)
+                return num;
+            }
+        }
+    })
+</script>
+<style>
+    body {
+        min-height: 400px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .lose{
+        color:red;
+        font-weight: bold;
+    }
+
+    .ivu-timeline-item {
+        padding: 0;
+    }
+
+    .ivu-timeline-item-content {
+        padding-bottom: 0;
+    }
+
+    .title {
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .body {
+        display: flex;
+        width: 900px;
+        justify-content: space-between;
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica Neue, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+    }
+
+    .comment {
+        width: 300px;
+    }
+
+    .box {
+        display: flex;
+        width: 300px;
+        justify-content: center;
+    }
+
+    .history {
+        width: 300px;
+        height: 300px;
+        overflow: scroll;
+    }
+
+    .line {
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #e8eaec00;
+        border-right: 1px solid #e6e6e6;
+        height: 24px;
+        margin-right: 14px;
+    }
+
+    .stick {
+        background: #dcdee2;
+        width: 3px;
+        height: 30px;
+        margin-left: 18px;
+        border-radius: 10px;
+    }
+
+    .row {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        margin-right: 10px;
+    }
+
+
+    button.ivu-btn {
+        /* margin-right: 17px; */
+        /* margin-bottom: 10px; */
+    }
+
+
+
+    .ivu-timeline.ivu-timeline-pending .ivu-timeline-item:nth-last-of-type(2) .ivu-timeline-item-content {
+        min-height: auto;
+    }
+
+    .ivu-badge-count {
+        line-height: 12px;
+        height: 14px;
+        padding: 0;
+        min-width: 14px;
+    }
+</style>
+
+</html>
